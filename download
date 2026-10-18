@@ -1,0 +1,8 @@
+node_modules/
+.expo/
+.vscode/
+dist/
+web-build/
+.env
+.env.local
+.DS_Store
