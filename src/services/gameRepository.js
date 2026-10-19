@@ -1,7 +1,7 @@
 import { starterGames } from '../data/starterGames';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from './firebaseConfig';
-import { addDoc, collection, getDocs } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
 /*
   MODULE 9 TODO FILE
   ------------------
@@ -43,8 +43,13 @@ export async function addGame(game) {
 
 export async function updateGame(id, changes) {
   // TODO 3 — UPDATE
-  // Use the document id to update only the supplied fields.
+  // Create a reference to the specific document using its id.
+  const gameRef = doc(db, 'games', id);
 
+  // Update only the supplied fields in Firestore.
+  await updateDoc(gameRef, changes);
+
+  // Return the updated object structure.
   return {
     id,
     ...changes,
@@ -53,7 +58,12 @@ export async function updateGame(id, changes) {
 
 export async function deleteGame(id) {
   // TODO 4 — DELETE
-  // Delete the Firestore document that matches this id.
+  // Create a reference to the specific document using its id.
+  const gameRef = doc(db, 'games', id);
 
+  // Delete the document from Firestore.
+  await deleteDoc(gameRef);
+
+  // Return the deleted document id.
   return id;
 }
