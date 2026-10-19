@@ -1,5 +1,6 @@
 import { starterGames } from '../data/starterGames';
-
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from './firebaseConfig';
 /*
   MODULE 9 TODO FILE
   ------------------
@@ -12,12 +13,20 @@ import { starterGames } from '../data/starterGames';
 export async function getGames() {
   // TODO 1 — READ
   // Read the "games" collection from Firestore.
-  // Convert each Firestore document into:
-  // { id: doc.id, ...doc.data() }
+  const querySnapshot = await getDocs(collection(db, 'games'));
+
+  // Convert each Firestore document into: { id: doc.id, ...doc.data() }
+  const games = querySnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+
   // Return the final array.
+  return games;
+}
 
   return starterGames;
-}
+
 
 export async function addGame(game) {
   // TODO 2 — CREATE
