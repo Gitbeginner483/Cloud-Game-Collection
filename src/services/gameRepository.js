@@ -1,6 +1,7 @@
 import { starterGames } from '../data/starterGames';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from './firebaseConfig';
+import { addDoc, collection, getDocs } from 'firebase/firestore';
 /*
   MODULE 9 TODO FILE
   ------------------
@@ -31,10 +32,11 @@ export async function getGames() {
 export async function addGame(game) {
   // TODO 2 — CREATE
   // Add the supplied game object to the "games" collection.
-  // Return the new game with its Firestore document id.
+  const docRef = await addDoc(collection(db, 'games'), game);
 
+  // Return the new game with its Firestore document id.
   return {
-    id: String(Date.now()),
+    id: docRef.id,
     ...game,
   };
 }
