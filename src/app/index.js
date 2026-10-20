@@ -1,4 +1,8 @@
-import React, { useState } from 'react';
+import React, {
+  useEffect,
+  useState,
+} from 'react';
+
 import {
   FlatList,
   Pressable,
@@ -9,14 +13,19 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
 
 import GameCard from '../components/GameCard';
 import Sidebar from '../components/Sidebar';
+import { genres } from '../data/starterGames';
 import {
-  starterGames,
-  genres,
-} from '../data/starterGames';
+  getGames,
+} from '../services/gameRepository';
+import {
+  getLocalGames,
+  saveGameLocally,
+} from '../services/sqliteGames';
 import { colors } from '../styles/theme';
 
 export default function HomeScreen() {
@@ -26,9 +35,72 @@ export default function HomeScreen() {
   const [query, setQuery] = useState('');
   const [genre, setGenre] =
     useState('All');
+  const [games, setGames] = useState([]);
+  const [isLoading, setIsLoading] =
+    useState(true);
+  const [errorMessage, setErrorMessage] =
+    useState('');
+  const [sqliteMessage, setSqliteMessage] =
+    useState('');
+
+  async function loadGames() {
+    setIsLoading(true);
+    setErrorMessage('');
+
+    try {
+      const firestoreGames =
+        await getGames();
+
+      setGames(firestoreGames);
+    } catch (error) {
+      console.error(
+        'Firestore loading error:',
+        error
+      );
+
+      setErrorMessage(
+        error.message ||
+        'Could not load games. Try again.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleSQLiteTest() {
+    if (games.length === 0) {
+      setSqliteMessage(
+        'Load a Firestore game before testing SQLite.'
+      );
+      return;
+    }
+
+    try {
+      const gameToSave = games[0];
+
+      await saveGameLocally(gameToSave);
+
+      const localGames = await getLocalGames();
+
+      setSqliteMessage(
+        `SQLite saved and read: ${localGames[0].title}`
+      );
+    } catch (error) {
+      console.error('SQLite error:', error);
+
+      setSqliteMessage(
+        error.message ||
+        'SQLite could not save the local game.'
+      );
+    }
+  }
+
+  useEffect(() => {
+    loadGames();
+  }, []);
 
   const filteredGames =
-    starterGames.filter((game) => {
+    games.filter((game) => {
       const matchesGenre =
         genre === 'All' ||
         game.genre === genre;
@@ -68,6 +140,7 @@ export default function HomeScreen() {
                 size={24}
                 color={colors.accent}
               />
+
               <Text
                 style={styles.mobileBrandText}
               >
@@ -119,10 +192,9 @@ export default function HomeScreen() {
                 size={17}
                 color="#0A0E0B"
               />
+
               <Text
-                style={
-                  styles.heroButtonText
-                }
+                style={styles.heroButtonText}
               >
                 Jump Back In
               </Text>
@@ -130,7 +202,7 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.heroTiles}>
-            {starterGames
+            {games
               .slice(0, 3)
               .map((game) => (
                 <View
@@ -138,16 +210,13 @@ export default function HomeScreen() {
                   style={styles.miniTile}
                 >
                   <Text
-                    style={
-                      styles.miniTileTitle
-                    }
+                    style={styles.miniTileTitle}
                   >
                     {game.title}
                   </Text>
+
                   <Text
-                    style={
-                      styles.miniTileMeta
-                    }
+                    style={styles.miniTileMeta}
                   >
                     {game.genre}
                   </Text>
@@ -156,29 +225,95 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>
-          Jump back in
-        </Text>
+        {isLoading ? (
+          <View style={styles.dataPanel}>
+            <View style={styles.dataCopy}>
+              <Text style={styles.dataTitle}>
+                Loading cloud library...
+              </Text>
 
-        <FlatList
-          horizontal
-          data={filteredGames}
-          keyExtractor={(item) =>
-            item.id
-          }
-          renderItem={({ item }) => (
-            <GameCard
-              game={item}
-              width={cardWidth}
-            />
-          )}
-          showsHorizontalScrollIndicator={
-            false
-          }
-          contentContainerStyle={
-            styles.rowList
-          }
-        />
+              <Text style={styles.dataText}>
+                Fetching your games from Firestore.
+              </Text>
+            </View>
+          </View>
+        ) : errorMessage ? (
+          <View style={styles.dataPanel}>
+            <View style={styles.dataCopy}>
+              <Text style={styles.dataTitle}>
+                Could not load games
+              </Text>
+
+              <Text style={styles.dataText}>
+                {errorMessage}
+              </Text>
+
+              <Pressable
+                onPress={loadGames}
+                style={styles.heroButton}
+              >
+                <Text
+                  style={styles.heroButtonText}
+                >
+                  Try Again
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : games.length === 0 ? (
+          <View style={styles.dataPanel}>
+            <View style={styles.dataCopy}>
+              <Text style={styles.dataTitle}>
+                Your game library is empty.
+              </Text>
+
+              <Text style={styles.dataText}>
+                Add games to the Firestore games
+                collection.
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.sectionTitle}>
+              Jump back in
+            </Text>
+
+            {filteredGames.length === 0 ? (
+              <View style={styles.dataPanel}>
+                <View style={styles.dataCopy}>
+                  <Text style={styles.dataTitle}>
+                    No matching games
+                  </Text>
+
+                  <Text style={styles.dataText}>
+                    Try another search or genre.
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <FlatList
+                horizontal
+                data={filteredGames}
+                keyExtractor={(item) =>
+                  item.id
+                }
+                renderItem={({ item }) => (
+                  <GameCard
+                    game={item}
+                    width={cardWidth}
+                  />
+                )}
+                showsHorizontalScrollIndicator={
+                  false
+                }
+                contentContainerStyle={
+                  styles.rowList
+                }
+              />
+            )}
+          </>
+        )}
 
         <Text style={styles.sectionTitle}>
           Browse by genre
@@ -243,6 +378,34 @@ export default function HomeScreen() {
               Firebase and SQLite code without
               rebuilding the entire UI.
             </Text>
+          </View>
+        </View>
+
+        <View style={styles.dataPanel}>
+          <View style={styles.dataCopy}>
+            <Text style={styles.dataTitle}>
+              Local SQLite test
+            </Text>
+
+            <Text style={styles.dataText}>
+              Save one Firestore game locally and
+              read it back from the local database.
+            </Text>
+
+            <Pressable
+              onPress={handleSQLiteTest}
+              style={styles.heroButton}
+            >
+              <Text style={styles.heroButtonText}>
+                Save One Game Locally
+              </Text>
+            </Pressable>
+
+            {sqliteMessage ? (
+              <Text style={styles.dataText}>
+                {sqliteMessage}
+              </Text>
+            ) : null}
           </View>
         </View>
       </ScrollView>

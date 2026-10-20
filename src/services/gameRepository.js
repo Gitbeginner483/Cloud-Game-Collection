@@ -1,7 +1,14 @@
-import { starterGames } from '../data/starterGames';
-import { collection, getDocs } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  updateDoc,
+} from 'firebase/firestore';
+
 import { db } from './firebaseConfig';
-import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase/firestore';
+
 /*
   MODULE 9 TODO FILE
   ------------------
@@ -14,27 +21,34 @@ import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from 'firebase
 export async function getGames() {
   // TODO 1 — READ
   // Read the "games" collection from Firestore.
-  const querySnapshot = await getDocs(collection(db, 'games'));
-
-  // Convert each Firestore document into: { id: doc.id, ...doc.data() }
-  const games = querySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
-
+  // Convert each Firestore document into:
+  // { id: doc.id, ...doc.data() }
   // Return the final array.
-  return games;
+
+  const gamesCollection = collection(db, 'games');
+
+  const snapshot = await getDocs(
+    gamesCollection
+  );
+
+  return snapshot.docs.map((gameDoc) => ({
+    id: gameDoc.id,
+    ...gameDoc.data(),
+  }));
 }
-
-  return starterGames;
-
 
 export async function addGame(game) {
   // TODO 2 — CREATE
   // Add the supplied game object to the "games" collection.
-  const docRef = await addDoc(collection(db, 'games'), game);
-
   // Return the new game with its Firestore document id.
+
+  const gamesCollection = collection(db, 'games');
+
+  const docRef = await addDoc(
+    gamesCollection,
+    game
+  );
+
   return {
     id: docRef.id,
     ...game,
@@ -43,13 +57,15 @@ export async function addGame(game) {
 
 export async function updateGame(id, changes) {
   // TODO 3 — UPDATE
-  // Create a reference to the specific document using its id.
+  // Use the document id to update only the supplied fields.
+
   const gameRef = doc(db, 'games', id);
 
-  // Update only the supplied fields in Firestore.
-  await updateDoc(gameRef, changes);
+  await updateDoc(
+    gameRef,
+    changes
+  );
 
-  // Return the updated object structure.
   return {
     id,
     ...changes,
@@ -58,12 +74,11 @@ export async function updateGame(id, changes) {
 
 export async function deleteGame(id) {
   // TODO 4 — DELETE
-  // Create a reference to the specific document using its id.
+  // Delete the Firestore document that matches this id.
+
   const gameRef = doc(db, 'games', id);
 
-  // Delete the document from Firestore.
   await deleteDoc(gameRef);
 
-  // Return the deleted document id.
   return id;
 }

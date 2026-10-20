@@ -24,7 +24,11 @@ export default function GameCard({
       ]}
     >
       <Image
-        source={game.cover}
+        source={
+          game.coverUrl
+            ? { uri: game.coverUrl }
+            : game.cover
+        }
         style={[
           styles.cover,
           {

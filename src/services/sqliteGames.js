@@ -26,18 +26,22 @@ export async function openLocalGamesDatabase() {
 export async function saveGameLocally(game) {
   const db = await openLocalGamesDatabase();
 
-  await db.runAsync(
-    `INSERT OR REPLACE INTO games
-      (id, title, genre, platform, status, rating, favorite, coverUrl)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    game.id,
+  const values = [
+    String(game.id),
     game.title,
     game.genre ?? '',
     game.platform ?? '',
     game.status ?? '',
-    game.rating ?? 0,
+    Number(game.rating ?? 0),
     game.favorite ? 1 : 0,
-    game.coverUrl ?? ''
+    game.coverUrl ?? '',
+  ];
+
+  await db.runAsync(
+    `INSERT OR REPLACE INTO games
+      (id, title, genre, platform, status, rating, favorite, coverUrl)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    values
   );
 }
 
